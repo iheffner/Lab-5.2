@@ -104,6 +104,8 @@ public class PokerTableController {
 	public TextField txtP4Name;
 
 	@FXML
+	public Label winnerAnnouncement;
+	@FXML
 	public Label lblP1Name;
 	@FXML
 	public Label lblP2Name;
@@ -121,6 +123,16 @@ public class PokerTableController {
 	@FXML
 	public ToggleButton btnP4SitLeave;
 
+	
+	@FXML
+	public HBox P1WinBox;
+	@FXML
+	public HBox P2WinBox;
+	@FXML
+	public HBox P3WinBox;
+	@FXML
+	public HBox P4WinBox;
+	
 	@FXML
 	public Button btnDraw;
 
@@ -138,6 +150,7 @@ public class PokerTableController {
 	 */
 	@FXML
 	private void initialize() {
+		winnerAnnouncement.setVisible(false);
 	}
 
 	/**
@@ -239,6 +252,14 @@ public class PokerTableController {
 		hBoxP3Cards.getChildren().clear();
 		hBoxP4Cards.getChildren().clear();
 
+		//Clear winner
+		winnerAnnouncement.setVisible(false);
+		//Clear crown box from previous round
+		P1WinBox.getChildren().clear();
+		P2WinBox.getChildren().clear();
+		P3WinBox.getChildren().clear();
+		P4WinBox.getChildren().clear();
+		
 		// Face down card (will represent the deck)
 		ImageView imgBottomCard = new ImageView(
 				new Image(getClass().getResourceAsStream("/res/img/b1fh.png"), 75, 75, true, true));
@@ -247,10 +268,33 @@ public class PokerTableController {
 		HboxCommonArea.getChildren().add(imgBottomCard);
 		HboxCommunityCards.getChildren().clear();
 
-		// Get the Rule, start the Game
-		Rule rle = new Rule(eGame.Omaha);
-		gme = new GamePlay(rle);
+		//Set the spacing on the cards
+		hBoxP1Cards.setSpacing(-30);
+		hBoxP2Cards.setSpacing(-30);
+		hBoxP3Cards.setSpacing(-30);
+		hBoxP4Cards.setSpacing(-30);
 
+		// Get the Rule, start the Game
+		Rule rle = new Rule(eGame.FiveStud);
+		int iGameType = mainApp.getiGameType();
+		switch(iGameType){
+		case 1: rle = new Rule(eGame.FiveStud);
+		break;
+		case 2: rle = new Rule(eGame.FiveStudOneJoker);
+		break;
+		//case 3: rle = new Rule(eGame.); 
+		//No defined rule for five card draw, although it is a menu item.
+		case 4: rle = new Rule(eGame.SevenDraw);
+		break;
+		case 5: rle = new Rule(eGame.TexasHoldEm);
+		break;
+		case 6: rle = new Rule(eGame.Omaha);
+		break;
+		default: rle = new Rule(eGame.FiveStud);
+		break;
+		}
+		gme = new GamePlay(rle);
+		
 		// Add the seated players to the game, create a GPPH for the player
 		for (Player p : mainApp.GetSeatedPlayers()) {
 			gme.addPlayerToGame(p);
@@ -398,8 +442,10 @@ public class PokerTableController {
 			Player WinningPlayer = (Player) hsPlayerHand.get(WinningHand);
 			System.out.println("Winning Player Position: " + WinningPlayer.getiPlayerPosition());
 			SetGameControls(eGameState.EndOfGame);
-
-		} else {
+			
+			announceWinner(WinningHand, WinningPlayer);
+		} 
+		else {
 			if (iCardDrawnPlayer + iCardDrawnCommon + 2 >= gme.getRule().getTotalCardsToDraw()) {
 				for (Player p : mainApp.GetSeatedPlayers()) {
 					Hand hPlayer = gme.FindPlayerGame(gme, p).getHand();
@@ -420,16 +466,91 @@ public class PokerTableController {
 						}
 					}
 					ArrayList<Hand> AllHands = Hand.ListHands(hPlayer, hCommon, gme);
-
-					System.out.println(AllHands.get(0).getHandStrength());
 				}
 			}
 
 			// Re-enable the draw button
 			SetGameControls(eGameState);
 		}
-
 	}
+
+	private void announceWinner(Hand wHand, Player wPlayer) {
+		String pName = wPlayer.getPlayerName();
+		int winPosition = wPlayer.getiPlayerPosition();
+		
+		ArrayList<Card> pHandCards = gme.FindPlayerGame(gme, wPlayer).getHand().getCardsInHand();
+		ArrayList<Card> wHandCards = wHand.getCardsInHand();
+		ArrayList<Card> cHandCards = gme.FindCommonHand(gme).getHand().getCardsInHand();
+		
+		//Text in the center announcing the winner
+		winnerAnnouncement.setText(pName + " wins!");
+		winnerAnnouncement.setVisible(true);
+		
+		//Place a little crown by the winner's position
+		ImageView crown = new ImageView(
+				new Image(getClass().getResourceAsStream("/res/img/winnerimage.png")));
+		switch(winPosition) {
+		case 1: P1WinBox.getChildren().add(crown);
+		break;
+		case 2: P2WinBox.getChildren().add(crown);
+		break;
+		case 3: P3WinBox.getChildren().add(crown);
+		break;
+		case 4: P4WinBox.getChildren().add(crown);
+		break;
+		}
+		
+		//Highlight the winning cards from the winner's hand
+		HBox pCardBox = new HBox();
+		switch (winPosition) {
+		case 1:
+			pCardBox = hBoxP1Cards;
+			break;
+		case 2:
+			pCardBox = hBoxP2Cards;
+			break;
+		case 3:
+			pCardBox = hBoxP3Cards;
+			break;
+		case 4:
+			pCardBox = hBoxP4Cards;
+			break;
+		}
+		
+		//Raise the winner player's cards
+		int counter = 0;
+		for (Card pc: pHandCards) {
+			for (Card wc: wHandCards) {
+				if ((wc.getRank().getRank() == pc.getRank().getRank()) && 
+						(wc.getSuit().getSuit() == pc.getSuit().getSuit()) ) {
+					//Make a transition
+					TranslateTransition tt = new TranslateTransition(Duration.millis(350), pCardBox.getChildren().get(counter));
+					tt.setFromY(0);
+					tt.setToY(-15);
+					tt.play();
+				}
+			}
+			counter++;
+		}
+		
+		//Raise the community cards
+		int comcounter = 0;
+		for (Card cc: cHandCards) {
+			for (Card wc: wHandCards) {
+				if ((wc.getRank().getRank() == cc.getRank().getRank()) && 
+						(wc.getSuit().getSuit() == cc.getSuit().getSuit()) ) {
+					//Make a transition
+					TranslateTransition tt = new TranslateTransition(Duration.millis(350), HboxCommunityCards.getChildren().get(comcounter));
+					tt.setFromY(0);
+					tt.setToY(-15);
+					tt.play();
+				}
+			}
+			comcounter++;
+		}
+		
+	}
+
 
 	private SequentialTransition CalculateTransition(Card c, HBox PlayerCardBox, ImageView imView, int iCardDrawn) {
 		// This is the card that is going to be dealt to the player.

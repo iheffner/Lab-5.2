@@ -8,6 +8,7 @@ import javafx.application.Application;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -25,6 +26,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import poker.app.view.PokerTableController;
 import poker.app.view.RootLayoutController;
@@ -55,8 +57,13 @@ public class MainApp extends Application {
 		// Set the application icon.
 		this.primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/res/img/26.png")));
 
+		//Center the board in the window
 		this.primaryStage.setScene(scene);
 		this.primaryStage.show();
+		Rectangle2D screenBounds = Screen.getPrimary().getVisualBounds();
+		primaryStage.setX((screenBounds.getWidth() - primaryStage.getWidth()) / 10); 
+		primaryStage.setY((screenBounds.getHeight() - primaryStage.getHeight()) / 4); 
+		primaryStage.setWidth(1250);
 
 		initRootLayout();
 
